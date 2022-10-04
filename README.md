@@ -16,5 +16,11 @@ This quarter features static map building and descriptive statistics.
 
 <strong> Final Project</strong> is a much more complex series of descriptive statistics about 2012 senate elections in the United States.
 ## Quarter 2
+This quarter ranges from strong fundamentals to statistical inference, regression models and stratified population samples.
+
+<strong> Week 4</strong> shows data cleaning, merging and descriptive statistics reviewing corrleations between povery rates, college completion rates, and race.
+
+<strong> Week 7</strong>
+<strong> Midterm</strong>
 ## Quarter 3
 ## Quarter 4
