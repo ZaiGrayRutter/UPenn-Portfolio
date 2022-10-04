@@ -1,7 +1,7 @@
 # UPenn Portfolio
 This repository hosts code samples from my post-baccalaureate at the University of Pennsylvania from 2020-2022. More information about the degree can be found <a href="https://lpsonline.sas.upenn.edu/academics/certificates/data-analytics">here.</a>
 
-The projects published in this repository range from robust fundamentals to shiny apps, regression models and interactive maps. All code is written in R.
+The projects published in this repository range from robust fundamentals to shiny apps, regression models and interactive maps. All code is written in R. PDFs are available as complement to the code.
 
 #### Notable Projects
 <ul>
