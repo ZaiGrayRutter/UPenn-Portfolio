@@ -1,0 +1,346 @@
+---
+title: "310 Final"
+author: "Zai Rutter"
+date: "3/2/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Premis 
+It's generally thought that people who trust the government may have a higher approval of elected officials. From this hypothesis I ask if it is true that people who are employed for the state have more trust in the government than those who do not work for the government. Furthermore, does this employment correlate to higher ratings of Biden? In this report, I test this hypothesis and see if employment affects trust in government, if employment affects feelings towards Biden, and I test if trust affects feelings toward Biden.
+
+
+```{r,echo=FALSE, message = FALSE, warning=FALSE}
+
+### Final 310
+### Feb 28 2022
+## Zai Rutter
+######################
+## Premis
+# Generally, it's thought that people who trust the government may have a 
+# higher approval of elected officials.
+# Working from this hypothesis, then is it true that people who work for the government 
+# have more trust in the government and 
+# does this employment for the government correlate to higher ratings of Biden 
+# than those who do not work for the gov?
+
+## Steps
+# 1 Overall plot of feeling
+# 2 Overall plot of trust
+
+
+## 2a. Who is trusting ( divide by dem and R )
+
+# 3 Trust vs. feeling plot
+# 4. Trust vs feeling plot divided by party
+
+
+# 5 overall plot of employment
+# 6 Trust vs employment plot 
+# 7 Trust, employment, feeling regression
+# 8 Trust, employment, feeling, party regression
+
+# 5 Trust vs feeling plot divided by employment
+
+
+
+######################
+## Load Data and Libraries
+
+load("~/Documents/Upenn/Data 310/Final Project/ANES20Datafor310.Rdata")
+
+library(readr)
+library(stargazer)
+library(tidyverse)
+library(sandwich)
+library(survey)
+library(haven)
+
+anes_large <- read_csv("~/Documents/Upenn/Data 310/Final Project/ANES/anesLarge.csv", col_select = c(V201529))
+#####################
+
+#####################
+## Variables
+
+# weight
+anes$weight <- anes$V200010a
+
+#State
+anes$state <- anes$V203001
+
+#Biden Feeling Thermometer 
+anes$biden.ft <- anes$V201151
+anes$biden.ft[anes$biden.ft %in% c(-9,-4,998)] <- NA
+
+
+#Trust in Gov to do what is right
+anes$Tgov <- anes$V201233 
+anes$Tgov[anes$Tgov %in% c(-9,-4,-8, 998)] <- NA
+
+anes$Tgov.Binary<-NA
+anes$Tgov.Binary[anes$Tgov %in% c(1,2,3)] <- 1
+anes$Tgov.Binary[anes$Tgov %in% c(4,5,-8)] <- 0
+
+#Employment
+anes$employment<-anes_large$V201529
+anes$employment[anes$employment %in% c(-9,-1,998)] <- NA
+
+anes$workgov<-NA
+anes$workgov[anes$employment %in% c(3,4,5,6)] <- 1
+anes$workgov[anes$employment %in% c(1,2,7,8,9)] <- 0
+
+#Party ID dummies
+anes$V201231x[anes$V201231x %in% c(-9,-8)] <- NA
+
+anes$rep <- NA
+anes$rep[anes$V201231x %in% c(5,6,7)] <- 1
+anes$rep[!(anes$V201231x %in% c(5,6,7))] <- 0
+
+anes$ind <- NA
+anes$ind[anes$V201231x %in% c(4)] <- 1
+anes$ind[!(anes$V201231x %in% c(4))] <- 0
+
+anes$dem <- NA
+anes$dem[anes$V201231x %in% c(1,2,3)] <- 1
+anes$dem[!(anes$V201231x %in% c(1,2,3))] <- 0
+
+# Survey Weight Design
+anes.w <- svydesign(ids = ~1,
+                    data=anes,
+                    weights = anes$weight)
+```
+
+## Main Variables
+
+#### Feeling Thermometer
+In my analysis I use data from the American National Election Study. I use the Feeling Thermometer variable which rates how warm or cold a respondent feels towards President Biden from a scale from 0 to 100.
+
+```{r,echo=FALSE, message = FALSE, warning=FALSE, fig.show="hold",out.width="50%"}
+#####################
+## Distribution of Feeling Plot
+plot(density(anes$biden.ft,na.rm=T), lwd=2,
+     xlim=c(0,100),
+     xlab="Cold(0) to Hot (100)",
+     main="Distribution of Biden Feeling Thermometer")
+```
+
+#### Trust
+I use another variable to measure the trust a respondent feels towards the government. This question asks respondents "How often do you trust government in Washington to do what is right?" the respondents choose from several answers: "Always","Most of the time","About half the time","Some of the time", "Never". The following graph shows the general make up of this data. 
+
+In some regressions I use a binary version of this variable where the answers "Always","Most of the time","About half the time" indicate that the respondent does trust the government, and the answers "Some of the time", "Never" indicate that the respondent does not trust the government.
+
+```{r,echo=FALSE, message = FALSE, warning=FALSE,fig.show="hold",out.width="50%"}
+#####################
+## Bar plot of Trust
+barplot(prop.table(table(anes$Tgov)),
+        xlab="", 
+        ylab="Proportion",
+        names.arg = c("Always","Most of the time","About half the time",
+                      "Some of the time", "Never"),
+        axes=F,
+        main="How Often do you Trust Government?")
+axis(side=2, las=2)
+
+## Bar plot of Binary Trust
+barplot(prop.table(table(anes$Tgov.Binary)),
+        xlab="", 
+        ylab="Proportion",
+        names.arg = c("Trusting","Not Trusting"),
+        axes=F,
+        main="Trust")
+axis(side=2, las=2)
+```
+
+#### Employment
+The variable 'employment' is built from the survey question "Describe your Employment" where the following are answers:
+
+1. For-profit company or organization
+2. Non-profit organization (including tax-exempt and charitable organizations)
+3. Local government (for example: city or county school district) 
+4. State government (including state colleges/universities)
+5. Active duty U.S. Armed Forces or Commissioned Corps
+6. Federal government civilian employee
+7. Owner of non-incorporated business, professional practice, or farm
+8. Owner of incorporated business, professional practice, or farm
+9. Worked without pay in a for-profit family business or farm for 15 hours or more per week
+
+I have created a binary from these responses where answers 3,4,5,6 indicate they are employed in the government or "1" and the rest are "0" for non-government employment.
+
+```{r,echo=FALSE, message = FALSE, warning=FALSE,fig.show="hold",out.width="50%"}
+## Bar plot of Work in Gov
+barplot(prop.table(table(anes$workgov)),
+        xlab="", 
+        ylab="Proportion",
+        names.arg = c("Non-Government", "Government"),
+        axes=F,
+        main="Employment")
+axis(side=2, las=2)
+```
+
+
+# Difference in Means
+
+A difference in means tells us about the degree of trust and feelings towards Biden. The first table 'Pooled' shows the relationship between individuals with high and low trust in the government and their feelings towards Biden. People with low trust averaged a rating of `r mean(anes$biden.ft[anes$Tgov.Binary==0], na.rm=T)` in their feelings towards Biden, where people with high trust averaged a rating of `r mean(anes$biden.ft[anes$Tgov.Binary==1], na.rm=T)`. 
+
+Those who worked for the government averaged a rating of `r mean(anes$biden.ft[anes$workgov == 1], na.rm = T)` where as those who do not work for the government averaged `r mean(anes$biden.ft[anes$workgov == 0], na.rm = T)`. Additionally, government workers had a larger difference in means between those classified as low or high trust than with non government workers.
+
+The final boxplot illustrates the feeling themometer in relation to the variable trust before it was coded into a binary variable. This allows us to see the range of responses per trust category. At first glance there is not a clear correlation betwen feelings towards Biden and trust, expecially when we see there is a higher mean in the "sometimes" category than in the "always" category.
+
+#### Feeling Themometer Rankings 
+
+Labels | Government Workers | Non Government Workers | Pooled
+------ | -------------------|------------------------|-------
+**Average** |`r mean(anes$biden.ft[anes$workgov == 1], na.rm=T)`|`r mean(anes$biden.ft[anes$workgov == 0], na.rm=T)`| `r mean(anes$biden.ft, na.rm=T)`
+**High Trust** |`r mean(anes$biden.ft[anes$workgov == 1 & anes$Tgov.Binary == 1], na.rm = T)` | `r mean(anes$biden.ft[anes$workgov == 0 & anes$Tgov.Binary == 1], na.rm = T)` | `r mean(anes$biden.ft[anes$Tgov.Binary == 1], na.rm = T)`
+**Low Trust** | `r mean(anes$biden.ft[anes$workgov == 1 & anes$Tgov.Binary == 0], na.rm = T)` | `r mean(anes$biden.ft[anes$workgov == 0 & anes$Tgov.Binary == 0], na.rm = T)` | `r mean(anes$biden.ft[anes$Tgov.Binary == 0], na.rm = T)`
+
+```{r,fig.show="hold",out.width="45%",message = FALSE, warning=FALSE, echo=FALSE}
+#####################
+## Trust and Feeling
+# Do gov workers have more trust in the government?
+
+#Visualize Main
+plot(density(anes$biden.ft[anes$Tgov.Binary==0], na.rm=T),
+     lwd=2, col="forestgreen", ylim=c(0,0.04), xlim=c(0,100),
+     main="Pooled")
+points(density(anes$biden.ft[anes$Tgov.Binary==1],na.=T), 
+       lwd=2, col="purple", type="l")
+abline(v=mean(anes$biden.ft[anes$Tgov.Binary==0], na.rm=T), lty=2, col="forestgreen")
+abline(v=mean(anes$biden.ft[anes$Tgov.Binary==1], na.rm=T), lty=2, col="purple")
+legend("topright", c("Low Trust", "High Trust"), lty=c(1,1), lwd=c(2,2), 
+       col=c("forestgreen", "purple"))
+
+#Visualize Trust by Employment - Gov
+plot(density(anes$biden.ft[anes$Tgov.Binary==0 & anes$workgov==1], na.rm=T),
+     lwd=2, col="forestgreen", ylim=c(0,0.04), xlim=c(0,100),
+     main="Government Workers")
+points(density(anes$biden.ft[anes$Tgov.Binary==1 &anes$workgov==1],na.=T), 
+       lwd=2, col="purple", type="l")
+abline(v=mean(anes$biden.ft[anes$Tgov.Binary==0 & anes$workgov==1], na.rm=T), lty=2, col="forestgreen")
+abline(v=mean(anes$biden.ft[anes$Tgov.Binary==1 & anes$workgov==1], na.rm=T), lty=2, col="purple")
+legend("topright", c("Low Trust", "High Trust"), lty=c(1,1), lwd=c(2,2), 
+       col=c("forestgreen", "purple"),)
+
+```
+```{r,fig.show="hold",out.width="45%",message = FALSE, warning=FALSE, echo=FALSE}
+#Visualize Trust by Employment - Non Gov
+plot(density(anes$biden.ft[anes$Tgov.Binary==0 & anes$workgov==0], na.rm=T),
+     lwd=2, col="forestgreen", ylim=c(0,0.04), xlim=c(0,100),
+     main="Non Government Workers")
+points(density(anes$biden.ft[anes$Tgov.Binary==1 & anes$workgov==1],na.=T), 
+       lwd=2, col="purple", type="l")
+abline(v=mean(anes$biden.ft[anes$Tgov.Binary==0 & anes$workgov==0], na.rm=T), lty=2, col="forestgreen")
+abline(v=mean(anes$biden.ft[anes$Tgov.Binary==1 & anes$workgov==0], na.rm=T), lty=2, col="purple")
+legend("topright", c("Low Trust", "High Trust"), lty=c(1,1), lwd=c(2,2), 
+       col=c("forestgreen", "purple"),)
+
+boxplot(anes$biden.ft ~ anes$Tgov,
+        axis = F,
+        names = c("Always","Most of the time","Half the time","Sometimes", "Never"),
+        ylab = "Feelings Themometer",
+        xlab = "Trust in Government")
+```
+
+# Regression Analysis
+
+While the previous graphs show us that there are some differences in feelings and trust between government and non government workers, they have done little to solidify causality. The previous graphs showed us that on average, government workers rank higher on the feeling thermometer than those who do not work for the government, but it did not assess if trust caused this difference. 
+
+For this and the following models I am using the binary variable for trust and employment as discussed prior. I am also clustering the variables by state. This is because some states may be more mobilized to vote, or recieve more media attention depending on how they impact the electoral college, thus errors we make in this regression might be highly correlated to the state.
+
+**Table Two** Shows how the trust in government is affected by employment. This table tells us that there is effectively a 1% increase in trust in government when employed in the government. Additionally this number is not statistically relevant because it's pvalue is well over.05. We see that the initial hypothesis is not true.
+
+
+**Model One** Shows how feelings towards Biden is affected by trust, such that as trust increases, feelings towards Biden increases by 1.84 points. This value is statistically relevant but accounts for roughly .1% of the variance in the feeling thermometer.
+
+**Model Two** Shows how feelings towards Biden is affected by employment. This suggests that when someone is employed by the government, there is a 4.34 point increase in their feelings towards Biden. This may seem like a large number but it is statistically unsignificant because of its high pvalue. 
+
+**Model Three** Shows how feelings towards Biden is directly affected by trust and employment, holding others constant. When someone is not employed by the government and is classified as trusting the feeling thermometer is likely to increase by .96 points. Similarly, when they are employed by the government but classified as not trusting the feeling thermometer is likely to increase by 1.85 points. Lastly, when we do not hold others constant and they are trusting and they are employed by the government the feeling thermometer is likely to increase by 8.14 points. Again, none of these numbers are statistically relevant. 
+
+
+```{r,fig.show="hold",out.width="45%",message = FALSE, warning=FALSE, echo=FALSE}
+
+m1 <- lm(Tgov.Binary ~  workgov, data=anes, weights= anes$weight)
+m1.vcov <- vcovCL(m1, cluster=anes$state)
+m1.se <- sqrt(diag(m1.vcov))
+
+m2 <- lm(biden.ft ~ Tgov.Binary , data=anes, weights= anes$weight)
+m2.vcov <- vcovCL(m2, cluster=anes$state)
+m2.se <- sqrt(diag(m2.vcov))
+
+m3 <- lm(biden.ft ~ workgov, data=anes, weights= anes$weight)
+m3.vcov <- vcovCL(m3, cluster=anes$state)
+m3.se <- sqrt(diag(m3.vcov))
+
+m4 <- lm(biden.ft ~ Tgov.Binary*workgov, data=anes, weights= anes$weight)
+m4.vcov <- vcovCL(m4, cluster=anes$state)
+m4.se <- sqrt(diag(m4.vcov))
+
+```
+
+```{r, echo=F, results = "asis", out.width="50%"}
+
+stargazer(m1,
+           se=list(m1.se,m2.se,m3.se),
+           dep.var.labels = "The Effect of Employment On Trust",
+           covariate.labels = c("Government Employment"),
+           title = "Direct Effects",
+           digits=2,
+           float=T,
+           single.row = T,
+           column.sep.width = "1pt",
+           font.size = "small",
+           header = F,
+           style="ajps",
+           omit.stat = c("rsq","f", "ser"),
+           star.cutoffs = c(.05),
+           notes.append = FALSE,
+           notes = c("OLS regression weighted to US adult population..", "Robust standard errors clustered by state. *p<0.05"))
+```
+
+```{r, echo=F, results = "asis", out.width="50%"}
+
+stargazer(m2,m3,m4,
+           se=list(m1.se,m2.se,m3.se),
+           dep.var.labels = "Biden Feeling Thermometer",
+           covariate.labels = c("Trust","Employment","Trust*Employment"),
+           title = "Direct Effects",
+           digits=2,
+           float=T,
+           single.row = T,
+           column.sep.width = "1pt",
+           font.size = "small",
+           header = F,
+           style="ajps",
+           omit.stat = c("rsq","f", "ser"),
+           star.cutoffs = c(.05),
+           notes.append = FALSE,
+           notes = c("OLS regression weighted to US adult population..", "Robust standard errors clustered by state. *p<0.05"))
+```
+
+#### Summary
+
+Table 4 shows us how other variables account for changes in the feeling thermometer.  As more variables are introduced the relevance trust has on the thermometer decreases, such that it is also no longer significant. Being a republican or democrat have a much more significant relationship to feelings towards Biden than any of the variables in my hypothesis. I cannot evaluate a correlation or causality that employment has any affect on trust or feelings towards Biden, and nor does trust affect feelings towards Biden.
+
+```{r, echo=F, results = "asis", out.width="100%"}
+m5 <- lm(biden.ft ~ Tgov.Binary + workgov + rep + dem, data=anes, weights= anes$weight)
+stargazer(m4,
+          dep.var.labels = "Biden Feeling Thermometer",
+          covariate.labels = c("Trust","Employment", "Republican","Democrat"),
+          title = "Interactive Effects",
+          digits=2,
+          float=T,
+          single.row = T,
+          column.sep.width = "1pt",
+          font.size = "small",
+          header = F,
+          style="ajps",
+          omit.stat = c("rsq","f", "ser"),
+          star.cutoffs = c(.05),
+          notes.append = FALSE,
+          notes = c("OLS regression weighted to US adult population.", "Robust standard errors clustered by state. *p<0.05"))
+
+```
+
+
+
