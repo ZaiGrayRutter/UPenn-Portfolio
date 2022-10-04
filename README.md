@@ -6,8 +6,9 @@ The projects published in this repository range from robust fundamentals to shin
 #### Notable Projects
 <ul>
   <li> Final Project under Quarter 3</li>
-  <li> Final Project under Quarter 3</li>
-  <li> Final Project under Quarter 3</li>
+  <li> App Project under Quarter 3</li>
+  <li> Week 6 under Quarter 4</li>
+  <li> Final Project under Quarter 1</li>
 </ul>
 
 
