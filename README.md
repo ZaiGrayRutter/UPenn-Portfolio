@@ -13,7 +13,7 @@ The projects published in this repository range from robust fundamentals to shin
 
 
 #### About the Author
-Zai Rutter is a current graduate student at the University of Chicago, <a href="https://harris.uchicago.edu/"> Harris School of Public Policy</a> where he is obtaining certificates in Energy Policy and Finance. 
+Zai Rutter is a current graduate student at the University of Chicago, <a href="https://harris.uchicago.edu/"> Harris School of Public Policy</a> where he is obtaining certificates in Energy Policy and Finance. He is the Director of the Data Visualization Department at the Chicago Policy Review. <a https://github.com/Chicago-Policy-Review-Data-Viz>Check out their repository here</a>
 
 <a href="https://drive.google.com/file/d/1lFAVRzYsYeaMhBXWol5LmEa-hxn1yBsB/view?usp=sharing">Resume</a>
 
